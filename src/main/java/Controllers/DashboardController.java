@@ -16,10 +16,11 @@ import javafx.fxml.FXML;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.Alert.AlertType;
+import models.Category;
 import models.User;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import services.ArticleManager;
+
 import services.PreferenceManager;
 
 import java.io.BufferedReader;
@@ -115,10 +116,11 @@ public void initialize() {
         }
     }
 
-
+@FXML
     public void setPreferencesOnAction(ActionEvent actionEvent) {
 
         try {
+            System.out.println("Loading preferences.fxml");
             // Load Preference.fxml
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/recommendationsystem/preferences.fxml"));
             Parent preferenceRoot = loader.load();
@@ -129,13 +131,19 @@ public void initialize() {
 
             // Retrieve the controller for Preference.fxml
             PreferencesController preferencesController = loader.getController();
+            preferencesController.setSelectedCategories();
+            preferencesController.loadCategoriesIntoCheckboxes();
             preferencesController.setUser(loggedInUser);
-            //preferencesController.loadCategories();
+
+           // preferencesController.lo
+            System.out.println("Preferences Loaded");
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
+
+
 }
 

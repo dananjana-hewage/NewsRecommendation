@@ -26,6 +26,8 @@ public class DatabaseManager {
             c = DriverManager.getConnection(URL, USER, PASSWORD);
         }
 
+        //return c.createStatement();
+
         Statement s = c.createStatement();
         return s;
 
@@ -50,7 +52,12 @@ public class DatabaseManager {
         return r;
 
     }
+
+
+
+
     //------------------
+
 
 
 }

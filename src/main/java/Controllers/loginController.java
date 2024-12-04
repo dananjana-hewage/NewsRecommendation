@@ -1,6 +1,7 @@
 package Controllers;
 
 
+import Utils.ArticleProcessor;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -163,6 +164,7 @@ boolean isInserted=DatabaseManager.iud("INSERT INTO users VALUES ('"+username+"'
     private void loadDashboard(User user) {
         try {
             // Load the dashboard FXML file
+            System.out.println("Loading Dashboard...");
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/recommendationsystem/dashboard.fxml"));
             AnchorPane dashboardPane = loader.load();
 
@@ -171,11 +173,14 @@ boolean isInserted=DatabaseManager.iud("INSERT INTO users VALUES ('"+username+"'
             dashboardController.loadArticles();
             dashboardController.setUser(user);
 
+            ArticleProcessor.fetchAndProcessArticles();
+
             // Get the current scene's root and replace it with the dashboard
             AnchorPane rootPane = (AnchorPane) signInPane.getScene().getRoot();
             rootPane.getChildren().clear(); // Clear existing content
             rootPane.getChildren().add(dashboardPane);// Add the dashboard content
 
+            System.out.println("dashboard loaded successfully!");
 
 
         } catch (Exception e) {

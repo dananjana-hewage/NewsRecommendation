@@ -1,24 +1,31 @@
 package models;
 
 public class Article {
-    private int id;
+    private int id; // Auto-increment ID from the database
     private String title;
     private String imageUrl;
+    private String category;
 
-    // No-argument constructor
-    public Article() {}
+    // Default constructor
+    public Article() {
+    }
 
-    public Article(int id, String title, String imageUrl) {
+    // Constructor without ID (used when creating a new article to save in the database)
+    public Article(String title, String imageUrl, String category) {
+        this.title = title;
+        this.imageUrl = imageUrl;
+        this.category = category;
+    }
+
+    // Constructor with ID (used when retrieving an article from the database)
+    public Article(int id, String title, String imageUrl, String category) {
         this.id = id;
         this.title = title;
         this.imageUrl = imageUrl;
+        this.category = category;
     }
 
-    public Article(String title, String imageUrl) {
-        this.title = title;
-        this.imageUrl = imageUrl;
-    }
-
+    // Getters and Setters
     public int getId() {
         return id;
     }
@@ -41,5 +48,23 @@ public class Article {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    @Override
+    public String toString() {
+        return "Article{" +
+                "id=" + id +
+                ", title='" + title + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", category='" + category + '\'' +
+                '}';
     }
 }

@@ -12,6 +12,8 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import models.Category;
 import models.User;
+import services.CategoryManager;
+
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -36,64 +38,103 @@ public class PreferencesController {
         this.loggedInUser = user;
     }
 
+    private List<Category> selectedCategories;
 
-    public void loadCategories() {
+
+    public void loadCategoriesIntoCheckboxes() {
         try {
             // Fetch categories from the database
-            ResultSet rs = DatabaseManager.search("SELECT name FROM categories");
+            String query = "SELECT * FROM categories";
+            ResultSet resultSet = DatabaseManager.search(query);
 
-            // Clear existing children in case of reload
             categoryContainer.getChildren().clear();
 
-            // Add each category as a CheckBox
-            while (rs.next()) {
-                String categoryName = rs.getString("name");
-                CheckBox checkBox = new CheckBox(categoryName);
-                checkBox.getStyleClass().add("checkbox");
-                categoryContainer.getChildren().add(checkBox);
+            // List<Category> categories = new ArrayList<>();
+            while (resultSet.next()) {
+                int categoryId = resultSet.getInt("category_id");  // Get category id
+                String categoryName = resultSet.getString("name"); // Get category name
 
+                // Create a checkbox for each category
+                CheckBox categoryCheckBox = new CheckBox(categoryName);
+                categoryCheckBox.getStyleClass().add("checkbox");
+                categoryCheckBox.setId("category_" + categoryId); // Set the ID for later identification
+                categoryCheckBox.setOnAction(e -> {
+                    // Set the selected state of the category (if needed)
+                });
+
+                // Add the checkbox to the category container (VBox)
+                categoryContainer.getChildren().add(categoryCheckBox);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-//    public void savePreferencesOnAction(ActionEvent actionEvent) {
-//
-//        try {
-//            // Fetch selected categories
-//            List<String> selectedCategories = new ArrayList<>();
-//            for (Node node : categoryContainer.getChildren()) {
-//                if (node instanceof CheckBox checkBox && checkBox.isSelected()) {
-//                    selectedCategories.add(checkBox.getText());
-//                }
-//            }
-//
-//            // Get category IDs for the selected categories
-//            for (String category : selectedCategories) {
-//                // Query to get category_id by category_name
-//                ResultSet rs = DatabaseManager.search(
-//                        "SELECT category_id FROM categories WHERE name = '" + category + "'");
-//
-//                if (rs.next()) {
-//                    int categoryId = rs.getInt("category_id");
-//
-//                    // Insert user_id and category_id into preferences table
-//                    String query = "INSERT INTO preferences (id, category_id) VALUES (" +
-//                            loggedInUser.getId() + ", " + categoryId + ")";
-//                    DatabaseManager.iud(query);
-//                }
-//            }
-//
-//            // Show success message
-//            showAlert("Preferences Saved", "Your preferences have been saved successfully.", Alert.AlertType.INFORMATION);
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            showAlert("Error", "An error occurred while saving preferences.", Alert.AlertType.ERROR);
-//        }
-//
-//    }
+    @FXML
+    public void savePreferencesOnAction(ActionEvent actionEvent) {
+
+        try {
+            // Clear previous preferences
+            System.out.println(loggedInUser.getUsername());
+            System.out.println(loggedInUser.getId());
+
+            String deleteQuery = "DELETE FROM preferences WHERE id = " + loggedInUser.getId();
+            System.out.println("deleteQuery ");
+            // Using Statement for execution
+            DatabaseManager.iud(deleteQuery); // Calling iud method to execute delete query
+
+            // Save new preferences
+            for (Category category : selectedCategories) {
+                // Check if the category exists in the database before inserting
+                boolean categoryExists = CategoryManager.categoryExists(category.getName());
+
+                if (categoryExists) {
+                    // Construct query for inserting preferences
+                    String insertQuery = "INSERT INTO preferences (id, category_id) VALUES (" +
+                            loggedInUser.getId() + ", " + category.getId() + ")";
+
+                    // Using Statement for execution
+                    DatabaseManager.iud(insertQuery); // Calling iud method to execute insert query
+                } else {
+                    // Handle case where the category doesn't exist
+                    System.out.println("Category does not exist: " + category.getName());
+                }
+            }
+            System.out.println("Preferences saved successfully.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // This method should be called when the checkboxes are populated
+    public void setSelectedCategories() {
+        selectedCategories = new ArrayList<>();
+        // Iterate through the checkboxes in the VBox
+        for (Node node : categoryContainer.getChildren()) {
+            if (node instanceof CheckBox) {
+                CheckBox checkBox = (CheckBox) node;
+                int categoryId = Integer.parseInt(checkBox.getId().replace("category_", ""));
+                // Find the corresponding category object for this checkbox
+                Category category = getCategoryById(categoryId);
+                if (category != null && checkBox.isSelected()) {
+                    category.setSelected(true);
+                    selectedCategories.add(category);
+                }
+            }
+        }
+
+    }
+
+
+    private Category getCategoryById(int categoryId) {
+        for (Category category : selectedCategories) {
+            if (category.getId() == categoryId) {
+                return category;
+            }
+        }
+        return null;
+    }
+
 
     private void showAlert(String title, String content, Alert.AlertType alertType) {
         Alert alert = new Alert(alertType);
@@ -101,6 +142,8 @@ public class PreferencesController {
         alert.setContentText(content);
         alert.showAndWait();
     }
+
+
 
 
 //---------------------
