@@ -6,6 +6,7 @@ module com.example.recommendationsystem {
     requires java.sql;
     requires org.json;
     requires jdk.jfr;
+    requires stanford.corenlp;
 
 
     opens com.example.recommendationsystem to javafx.fxml;

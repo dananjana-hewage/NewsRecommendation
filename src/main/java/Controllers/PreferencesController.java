@@ -1,6 +1,6 @@
 package Controllers;
 
-import Utils.APIClient;
+
 import database.DatabaseManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -58,42 +58,42 @@ public class PreferencesController {
         }
     }
 
-    public void savePreferencesOnAction(ActionEvent actionEvent) {
-
-        try {
-            // Fetch selected categories
-            List<String> selectedCategories = new ArrayList<>();
-            for (Node node : categoryContainer.getChildren()) {
-                if (node instanceof CheckBox checkBox && checkBox.isSelected()) {
-                    selectedCategories.add(checkBox.getText());
-                }
-            }
-
-            // Get category IDs for the selected categories
-            for (String category : selectedCategories) {
-                // Query to get category_id by category_name
-                ResultSet rs = DatabaseManager.search(
-                        "SELECT category_id FROM categories WHERE name = '" + category + "'");
-
-                if (rs.next()) {
-                    int categoryId = rs.getInt("category_id");
-
-                    // Insert user_id and category_id into preferences table
-                    String query = "INSERT INTO preferences (id, category_id) VALUES (" +
-                            loggedInUser.getId() + ", " + categoryId + ")";
-                    DatabaseManager.iud(query);
-                }
-            }
-
-            // Show success message
-            showAlert("Preferences Saved", "Your preferences have been saved successfully.", Alert.AlertType.INFORMATION);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showAlert("Error", "An error occurred while saving preferences.", Alert.AlertType.ERROR);
-        }
-
-    }
+//    public void savePreferencesOnAction(ActionEvent actionEvent) {
+//
+//        try {
+//            // Fetch selected categories
+//            List<String> selectedCategories = new ArrayList<>();
+//            for (Node node : categoryContainer.getChildren()) {
+//                if (node instanceof CheckBox checkBox && checkBox.isSelected()) {
+//                    selectedCategories.add(checkBox.getText());
+//                }
+//            }
+//
+//            // Get category IDs for the selected categories
+//            for (String category : selectedCategories) {
+//                // Query to get category_id by category_name
+//                ResultSet rs = DatabaseManager.search(
+//                        "SELECT category_id FROM categories WHERE name = '" + category + "'");
+//
+//                if (rs.next()) {
+//                    int categoryId = rs.getInt("category_id");
+//
+//                    // Insert user_id and category_id into preferences table
+//                    String query = "INSERT INTO preferences (id, category_id) VALUES (" +
+//                            loggedInUser.getId() + ", " + categoryId + ")";
+//                    DatabaseManager.iud(query);
+//                }
+//            }
+//
+//            // Show success message
+//            showAlert("Preferences Saved", "Your preferences have been saved successfully.", Alert.AlertType.INFORMATION);
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            showAlert("Error", "An error occurred while saving preferences.", Alert.AlertType.ERROR);
+//        }
+//
+//    }
 
     private void showAlert(String title, String content, Alert.AlertType alertType) {
         Alert alert = new Alert(alertType);

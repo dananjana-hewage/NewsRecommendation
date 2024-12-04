@@ -1,6 +1,6 @@
 package Controllers;
 
-import database.ArticleLoader;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -168,7 +168,7 @@ boolean isInserted=DatabaseManager.iud("INSERT INTO users VALUES ('"+username+"'
 
             // Load articles to the dashboard for the logged-in user
             DashboardController dashboardController = loader.getController();
-            dashboardController.loadArticlesToDashboard(user.getId());
+            dashboardController.loadArticles();
             dashboardController.setUser(user);
 
             // Get the current scene's root and replace it with the dashboard

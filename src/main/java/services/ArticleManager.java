@@ -1,5 +1,6 @@
 package services;
 
+import Utils.ArticleProcessor;
 import database.DatabaseManager;
 import models.Article;
 
@@ -9,25 +10,30 @@ import java.util.List;
 
 public class ArticleManager {
 
-    public static List<Article> getArticlesByCategories(List<Integer> categoryIds) {
-        List<Article> articles = new ArrayList<>();
-        try {
-            if (!categoryIds.isEmpty()) {
-                String categories = categoryIds.toString().replace("[", "").replace("]", "");
-                String query = "SELECT * FROM articles WHERE category_id IN (" + categories + ")";
-                ResultSet resultSet = DatabaseManager.search(query);
+        private final ArticleProcessor articleProcessor = new ArticleProcessor();
 
-                while (resultSet.next()) {
-                    Article article = new Article();
-                    article.setId(resultSet.getInt("id"));
-                    article.setTitle(resultSet.getString("title"));
-                    article.setImageUrl(resultSet.getString("image_url"));
-                    articles.add(article);
+        public void fetchAndSaveArticles() {
+            try {
+                // Fetch articles from Bing Search API
+                BingSearchAPIClient apiClient = new BingSearchAPIClient("YOUR_API_KEY");
+                List<Article> articles = apiClient.fetchArticlesByCategory("Technology");
+                articles.addAll(apiClient.fetchArticlesByCategory("Health"));
+                articles.addAll(apiClient.fetchArticlesByCategory("Sports"));
+                articles.addAll(apiClient.fetchArticlesByCategory("AI"));
+
+                // Process articles
+                List<Article> categorizedArticles = articleProcessor.categorizeArticles(articles);
+
+                // Save categorized articles to the database
+                for (Article article : categorizedArticles) {
+                    DatabaseManager.iud("INSERT INTO articles (title, image_url, category) VALUES ('"
+                            + article.getTitle() + "', '"
+                            + article.getImageUrl() + "', '"
+                            + article.getCategory() + "')");
                 }
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        return articles;
     }
-}
