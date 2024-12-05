@@ -2,6 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.example</groupId>
@@ -11,10 +12,21 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>23</maven.compiler.source>
+    <maven.compiler.target>23</maven.compiler.target>
     <junit.version>5.10.2</junit.version>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+  </repositories>
+
+
   <dependencies>
+    <!-- JavaFX dependencies -->
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
@@ -26,6 +38,7 @@
       <version>23.0.1</version>
     </dependency>
 
+    <!-- JUnit dependencies for testing -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
@@ -39,25 +52,42 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Add MySQL JDBC Driver -->
+    <!-- MySQL JDBC Driver -->
     <dependency>
       <groupId>mysql</groupId>
       <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.30</version> <!-- Latest version, change if needed -->
+      <version>8.0.30</version> <!-- Change to the required version if needed -->
     </dependency>
 
+    <!-- Gson for JSON processing -->
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>2.10.1</version> <!-- Use the latest stable version -->
+      <version>2.10.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.32</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.2.9</version>
+    </dependency>
+
+
+
+
+    <!-- JSON processing (alternative to Gson) -->
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>20210307</version>
     </dependency>
 
+    <!-- Stanford CoreNLP for NLP processing -->
     <dependency>
       <groupId>edu.stanford.nlp</groupId>
       <artifactId>stanford-corenlp</artifactId>
@@ -70,12 +100,11 @@
       <classifier>models</classifier>
     </dependency>
 
-
-
   </dependencies>
 
   <build>
     <plugins>
+      <!-- Maven Compiler Plugin for Java version compatibility -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -85,13 +114,14 @@
           <target>23</target>
         </configuration>
       </plugin>
+
+      <!-- JavaFX Maven Plugin for running JavaFX applications -->
       <plugin>
         <groupId>org.openjfx</groupId>
         <artifactId>javafx-maven-plugin</artifactId>
         <version>0.0.8</version>
         <executions>
           <execution>
-            <!-- Default configuration for running with: mvn clean javafx:run -->
             <id>default-cli</id>
             <configuration>
               <mainClass>com.example.recommendationsystem/com.example.recommendationsystem.HelloApplication</mainClass>
@@ -107,4 +137,5 @@
       </plugin>
     </plugins>
   </build>
+
 </project>

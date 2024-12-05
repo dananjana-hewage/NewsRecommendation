@@ -1,61 +1,134 @@
 package Utils;
 
 import database.DatabaseManager;
+import edu.stanford.nlp.ling.CoreAnnotations;
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.pipeline.*;
+import models.Article;
+import org.json.JSONArray;
 import org.json.JSONObject;
-import services.APIClient;
-import services.CategoryManager;
-import services.StanfordNlpCategorizer;
 
-import java.util.List;
+import java.sql.ResultSet;
+import java.util.*;
 
 public class ArticleProcessor {
 
-    private static final String API_KEY = "4bab0bdf2abf424abedd86eeb1a607f9";
+    private StanfordCoreNLP pipeline;
 
-    public static void fetchAndProcessArticles() {
-        try {
-            APIClient apiClient = new APIClient(API_KEY);
-            StanfordNlpCategorizer categorizer = new StanfordNlpCategorizer();
+    public ArticleProcessor() {
+        Properties props = new Properties();
+        props.setProperty("annotators", "tokenize,ssplit,pos,lemma,ner");
+        pipeline = new StanfordCoreNLP(props);
+    }
 
-            String[] categories = {"Technology", "Health", "Sports", "AI"};
+    public List<String> extractKeywords(String content) {
+        List<String> keywords = new ArrayList<>();
+        Annotation document = new Annotation(content);
+        pipeline.annotate(document);
 
-            // Insert categories into the categories table if they don't exist
-            for (String category : categories) {
-                if (!CategoryManager.categoryExists(category)) {
-                    String insertCategoryQuery = "INSERT INTO categories (name) VALUES ('" + category + "')";
-                    DatabaseManager.iud(insertCategoryQuery);
-                    System.out.println("Category " + category + " added to the database.");
+        // Extract keywords (nouns, proper nouns, adjectives)
+        for (CoreLabel token : document.get(CoreAnnotations.TokensAnnotation.class)) {
+            String pos = token.get(CoreAnnotations.PartOfSpeechAnnotation.class);
+            if (pos.equals("NN") || pos.equals("NNP") || pos.equals("JJ")) {
+                keywords.add(token.word().toLowerCase());
+            }
+        }
+        return keywords;
+    }
+
+    public String categorizeArticle(String content) {
+        List<String> extractedKeywords = extractKeywords(content);
+
+        // Predefined categories and keywords
+        List<List<String>> categoryKeywordsList = Arrays.asList(
+                Arrays.asList("ai", "technology", "machine", "software", "robot"), // Technology keywords
+                Arrays.asList("medicine", "health", "wellness", "doctor", "hospital"), // Health keywords
+                Arrays.asList("game", "team", "player", "sports", "match"), // Sports keywords
+                Arrays.asList("finance", "money", "economy", "business", "stock") // Finance keywords
+        );
+
+        List<String> categoryNames = Arrays.asList("Technology", "Health", "Sports", "Finance");
+
+        for (int i = 0; i < categoryKeywordsList.size(); i++) {
+            for (String keyword : categoryKeywordsList.get(i)) {
+                if (extractedKeywords.contains(keyword)) {
+                    return categoryNames.get(i);
                 }
             }
+        }
+        return "Uncategorized";
+    }
 
-            for (String category : categories) {
-                // Store the category in the categories table if it doesn't already exist
-                //String checkCategoryQuery = "SELECT * FROM categories WHERE name = '" + category + "'";
-                List<JSONObject> articles = apiClient.fetchArticlesByCategory(category);
+    // Fetch category_id from the categories table using the category name
+    private int getCategoryId(String category) {
+        int categoryId = -1;
 
-                // Insert the category into the database if it doesn't exist
-                for (JSONObject article : articles) {
-                    String title = article.optString("name", "No Title");
-                    String description = article.optString("description", "");
-                    String imageUrl = article.optJSONObject("image").optString("thumbnailUrl", "");
-
-                    String combinedText = title + " " + description;
-                    String assignedCategory = categorizer.categorize(combinedText);
-
-                    if (assignedCategory != null) {
-                        String insertArticleQuery = "INSERT INTO articles (title, image_url, category) VALUES ('" +
-                                title.replace("'", "''") + "', '" +
-                                imageUrl + "', '" +
-                                assignedCategory + "')";
-                        DatabaseManager.iud(insertArticleQuery);
-                        System.out.println("Saved: " + title + " | Category: " + assignedCategory);
-                    } else {
-                        System.out.println("Uncategorized article skipped: " + title);
-                    }
-                }
+        try {
+            String query = "SELECT category_id FROM categories WHERE category_name = '" + category + "'";
+            ResultSet resultSet = DatabaseManager.search(query);
+            if (resultSet.next()) {
+                categoryId = resultSet.getInt("category_id");
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return categoryId;
     }
+
+    public void processAndStoreArticles() {
+        JSONArray articles = utils.APIClient.fetchArticles();
+
+        if (articles != null) {
+            for (int i = 0; i < articles.length(); i++) {
+                JSONObject article = articles.getJSONObject(i);
+                String title = article.getString("name");
+               // String description = article.getString("description");
+
+                // Categorize the article
+                String category = categorizeArticle(title);
+
+                // Get the category ID from the database
+                int categoryId = getCategoryId(category);
+
+                // Store in the database
+
+                // Create an Article object
+                Article articleObject = new Article(categoryId, title);
+
+                // Store in the database
+                saveArticleToDatabase(articleObject);
+
+            }
+        }
+    }
+
+    private void saveArticleToDatabase(Article article) {
+        try {
+            String query = "INSERT INTO articles (title, category_id) VALUES ('"
+                    + article.getTitle() + "', '"
+                    + article.getCategoryId() + ")";
+            DatabaseManager.iud(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+//    private void saveArticleToDatabase(String title, String description, String category) {
+//        String query = "INSERT INTO articles (title, category_id) VALUES ('"
+//                + article.getTitle() + "', '"
+//                + article.getCategoryId() + ")";
+//        DatabaseManager.iud(query);
+//    }
+
+    public static void main(String[] args) {
+        ArticleProcessor processor = new ArticleProcessor();
+        String articleContent = "Artificial intelligence and machine learning are transforming the technology industry.";
+
+        // Categorize the article
+        String category = processor.categorizeArticle(articleContent);
+        System.out.println("Category: " + category);
+    }
+
+
 }

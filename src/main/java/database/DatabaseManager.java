@@ -1,15 +1,9 @@
 package database;
 
-import models.Category;
-import models.Article;
-import models.User;
-
 import java.sql.*;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DatabaseManager {
 
@@ -18,6 +12,7 @@ public class DatabaseManager {
     private static final String PASSWORD = "";
     private static Connection c;
 
+//
 
     public static Statement createConnection() throws Exception {
 
@@ -26,10 +21,11 @@ public class DatabaseManager {
             c = DriverManager.getConnection(URL, USER, PASSWORD);
         }
 
-        //return c.createStatement();
+        //return (Statement) c;
 
         Statement s = c.createStatement();
         return s;
+
 
     }
 
@@ -52,11 +48,6 @@ public class DatabaseManager {
         return r;
 
     }
-
-
-
-
-    //------------------
 
 
 

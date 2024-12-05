@@ -1,7 +1,7 @@
 package Controllers;
 
 
-import Utils.ArticleProcessor;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -170,10 +170,10 @@ boolean isInserted=DatabaseManager.iud("INSERT INTO users VALUES ('"+username+"'
 
             // Load articles to the dashboard for the logged-in user
             DashboardController dashboardController = loader.getController();
-            dashboardController.loadArticles();
+            //dashboardController.loadArticles();
             dashboardController.setUser(user);
 
-            ArticleProcessor.fetchAndProcessArticles();
+            //ArticleProcessor.fetchAndProcessArticles();
 
             // Get the current scene's root and replace it with the dashboard
             AnchorPane rootPane = (AnchorPane) signInPane.getScene().getRoot();

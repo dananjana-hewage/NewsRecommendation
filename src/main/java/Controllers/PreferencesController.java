@@ -4,23 +4,26 @@ package Controllers;
 import database.DatabaseManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import models.Category;
 import models.User;
 import services.CategoryManager;
 
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class PreferencesController {
 
@@ -38,101 +41,92 @@ public class PreferencesController {
         this.loggedInUser = user;
     }
 
-    private List<Category> selectedCategories;
-
 
     public void loadCategoriesIntoCheckboxes() {
+
+        categoryContainer.getChildren().clear(); // Clear any existing checkboxes
+
         try {
-            // Fetch categories from the database
-            String query = "SELECT * FROM categories";
-            ResultSet resultSet = DatabaseManager.search(query);
+            System.out.println(CategoryManager.getCategories());
+            ResultSet rs = CategoryManager.getCategories();
+            while (rs.next()) {
+                int categoryId = rs.getInt("category_id");
+                String categoryName = rs.getString("name");
 
-            categoryContainer.getChildren().clear();
-
-            // List<Category> categories = new ArrayList<>();
-            while (resultSet.next()) {
-                int categoryId = resultSet.getInt("category_id");  // Get category id
-                String categoryName = resultSet.getString("name"); // Get category name
-
-                // Create a checkbox for each category
-                CheckBox categoryCheckBox = new CheckBox(categoryName);
-                categoryCheckBox.getStyleClass().add("checkbox");
-                categoryCheckBox.setId("category_" + categoryId); // Set the ID for later identification
-                categoryCheckBox.setOnAction(e -> {
-                    // Set the selected state of the category (if needed)
-                });
-
-                // Add the checkbox to the category container (VBox)
-                categoryContainer.getChildren().add(categoryCheckBox);
+                CheckBox checkBox = new CheckBox(categoryName);
+                checkBox.setUserData(categoryId); // Store category_id in CheckBox's userData
+                categoryContainer.getChildren().add(checkBox);
+                checkBox.getStyleClass().add("checkbox");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error loading categories: " + e.getMessage());
         }
     }
 
     @FXML
     public void savePreferencesOnAction(ActionEvent actionEvent) {
-
         try {
-            // Clear previous preferences
-            System.out.println(loggedInUser.getUsername());
-            System.out.println(loggedInUser.getId());
+            // Step 1: Retrieve existing preferences for the user
+            String fetchQuery = "SELECT category_id FROM preferences WHERE id = " + loggedInUser.getId();
+            ResultSet rs = DatabaseManager.search(fetchQuery);
 
-            String deleteQuery = "DELETE FROM preferences WHERE id = " + loggedInUser.getId();
-            System.out.println("deleteQuery ");
-            // Using Statement for execution
-            DatabaseManager.iud(deleteQuery); // Calling iud method to execute delete query
+            // Store existing preferences in a Set for quick lookup
+            Set<Integer> existingPreferences = new HashSet<>();
+            while (rs.next()) {
+                existingPreferences.add(rs.getInt("category_id"));
+            }
 
-            // Save new preferences
-            for (Category category : selectedCategories) {
-                // Check if the category exists in the database before inserting
-                boolean categoryExists = CategoryManager.categoryExists(category.getName());
+            // Step 2: Process checkbox selections
+            Set<Integer> selectedCategories = new HashSet<>();
+            for (var node : categoryContainer.getChildren()) {
+                if (node instanceof CheckBox) {
+                    CheckBox checkBox = (CheckBox) node;
+                    int categoryId = (int) checkBox.getUserData();
+                    if (checkBox.isSelected()) {
+                        selectedCategories.add(categoryId);
+                    }
+                }
+            }
 
-                if (categoryExists) {
-                    // Construct query for inserting preferences
+            // Step 3: Handle case where no categories are selected
+            if (selectedCategories.isEmpty()) {
+                // Assume all categories are selected
+                for (var node : categoryContainer.getChildren()) {
+                    if (node instanceof CheckBox) {
+                        CheckBox checkBox = (CheckBox) node;
+                        selectedCategories.add((int) checkBox.getUserData());
+                    }
+                }
+            }
+
+            // Step 4: Update database preferences
+            // Insert new preferences
+            for (int categoryId : selectedCategories) {
+                if (!existingPreferences.contains(categoryId)) {
                     String insertQuery = "INSERT INTO preferences (id, category_id) VALUES (" +
-                            loggedInUser.getId() + ", " + category.getId() + ")";
-
-                    // Using Statement for execution
-                    DatabaseManager.iud(insertQuery); // Calling iud method to execute insert query
-                } else {
-                    // Handle case where the category doesn't exist
-                    System.out.println("Category does not exist: " + category.getName());
+                            loggedInUser.getId() + ", " + categoryId + ")";
+                    if (!DatabaseManager.iud(insertQuery)) {
+                        System.out.println("Failed to save preference for category ID: " + categoryId);
+                    }
                 }
             }
-            System.out.println("Preferences saved successfully.");
+
+            // Remove deselected preferences
+            for (int categoryId : existingPreferences) {
+                if (!selectedCategories.contains(categoryId)) {
+                    String deleteQuery = "DELETE FROM preferences WHERE id = " + loggedInUser.getId() +
+                            " AND category_id = " + categoryId;
+                    if (!DatabaseManager.iud(deleteQuery)) {
+                        System.out.println("Failed to remove preference for category ID: " + categoryId);
+                    }
+                }
+            }
+
+            System.out.println("Preferences successfully updated!");
+            loadDashboardController();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error saving preferences: " + e.getMessage());
         }
-    }
-
-    // This method should be called when the checkboxes are populated
-    public void setSelectedCategories() {
-        selectedCategories = new ArrayList<>();
-        // Iterate through the checkboxes in the VBox
-        for (Node node : categoryContainer.getChildren()) {
-            if (node instanceof CheckBox) {
-                CheckBox checkBox = (CheckBox) node;
-                int categoryId = Integer.parseInt(checkBox.getId().replace("category_", ""));
-                // Find the corresponding category object for this checkbox
-                Category category = getCategoryById(categoryId);
-                if (category != null && checkBox.isSelected()) {
-                    category.setSelected(true);
-                    selectedCategories.add(category);
-                }
-            }
-        }
-
-    }
-
-
-    private Category getCategoryById(int categoryId) {
-        for (Category category : selectedCategories) {
-            if (category.getId() == categoryId) {
-                return category;
-            }
-        }
-        return null;
     }
 
 
@@ -143,6 +137,27 @@ public class PreferencesController {
         alert.showAndWait();
     }
 
+    private void loadDashboardController() {
+        try {
+            // Step 1: Load the dashboard FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/path/to/dashboard.fxml"));
+            Parent dashboardRoot = loader.load();
+
+            // Step 2: Get the controller of the dashboard
+            DashboardController dashboardController = loader.getController();
+
+            // Step 3: Pass the logged-in user details to the dashboard controller (if needed)
+            dashboardController.setUser(loggedInUser);
+
+            // Step 4: Set the scene and display the dashboard
+            Stage stage = (Stage) categoryContainer.getScene().getWindow();
+            stage.setScene(new Scene(dashboardRoot));
+            stage.setTitle("Dashboard");
+            stage.show();
+        } catch (IOException e) {
+            System.out.println("Error loading dashboard: " + e.getMessage());
+        }
+    }
 
 
 

@@ -1,7 +1,9 @@
 package Controllers;
 
 
+import Utils.ArticleProcessor;
 import database.DatabaseManager;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -21,6 +23,8 @@ import models.User;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+
+import services.CategoryManager;
 import services.PreferenceManager;
 
 import java.io.BufferedReader;
@@ -28,10 +32,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.sql.ResultSet;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class  DashboardController {
@@ -58,65 +63,126 @@ public class  DashboardController {
     }
 
 public void initialize() {
-    //ArticleLoader.saveArticlesToDatabase();
-    loadArticles();
+        saveCategoriesAction();
+        ArticleProcessor articleProcessor = new ArticleProcessor();
+        articleProcessor.processAndStoreArticles();
+        //loadArticles();
+
 }
+
+
 
     @FXML
     private VBox articlesVBox;
 
+    private ExecutorService executorService = Executors.newFixedThreadPool(2); // For background threads
 
-    // Method to load articles into the VBox
-    public void loadArticles() {
-        try {
-            // Query to fetch articles from the database
-            ResultSet resultSet = DatabaseManager.search("SELECT * FROM articles");
+    // Load articles asynchronously
+//    public void loadArticles() {
+//        articlesVBox.getChildren().clear();
+//
+//        executorService.submit(() -> {
+//            String query = "SELECT article_id, title, FROM articles";
+//
+//            try {
+//                // Get the Statement object from DatabaseManager
+//                Statement statement = DatabaseManager.createConnection();
+//                // Get the Connection object from the Statement
+//                Connection conn = statement.getConnection();
+//
+//                try (PreparedStatement stmt = conn.prepareStatement(query);
+//                     ResultSet rs = stmt.executeQuery()) {
+//
+//                    List<Article> articles = new ArrayList<>();
+//                    while (rs.next()) {
+//                        int articleId = rs.getInt("article_id");
+//                        String title = rs.getString("title");
+//                        String description = rs.getString("description");
+//                        articles.add(new Article(articleId, title));
+//                        System.out.println("Fetched: " + title);
+//                    }
+//
+//                    Platform.runLater(() -> {
+//                        for (Article article : articles) {
+//                            System.out.println("Adding article: " + article.getTitle());
+//                            HBox articlePreview = new HBox();
+//                            articlePreview.setStyle("-fx-padding: 10;");
+//
+//                            Label titleLabel = new Label(article.getTitle());
+//                            titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+//                            titleLabel.setOnMouseClicked(event -> showFullArticle(article.getArticleId()));
+//
+////                            Label descriptionLabel = new Label(article.getDescription());
+////                            descriptionLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: gray;");
+//
+//                            articlePreview.getChildren().addAll(titleLabel);
+//                            articlesVBox.getChildren().add(articlePreview);
+//                        }
+//                    });
+//                    System.out.println("Articles loaded");
+//                }
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//        });
+//    }
 
-            // Clear the VBox before adding new articles
-            articlesVBox.getChildren().clear();
 
-            // Iterate through the result set and add each article to the VBox
-            while (resultSet.next()) {
-                String title = resultSet.getString("title");
-                String imageUrl = resultSet.getString("image_url");
-                String category = resultSet.getString("category");
 
-                // Create an HBox for each article
-                HBox articleBox = new HBox();
-                articleBox.setSpacing(10);
+    // Show full article when title is clicked
+    private void showFullArticle(int articleId) {
+        executorService.submit(() -> {
+            try {
+                // Load the full article scene
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/fullArticle.fxml"));
+                Parent root = loader.load();
 
-                // Create an ImageView for the article image
-                ImageView imageView = new ImageView();
-                if (imageUrl != null && !imageUrl.isEmpty()) {
-                    Image image = new Image(imageUrl, 100, 100, true, true); // Set width & height
-                    imageView.setImage(image);
-                }
-                imageView.setFitWidth(100);
-                imageView.setFitHeight(100);
-                imageView.setPreserveRatio(true);
+                // Pass the articleId to the full article controller
+                FullArticleController fullArticleController = loader.getController();
+                fullArticleController.loadFullArticle(articleId);
 
-                // Create a Label for the article title
-                Label titleLabel = new Label(title);
-                titleLabel.setStyle("-fx-font-size: 16; -fx-font-weight: bold;");
-                titleLabel.setWrapText(true); // Wrap text if too long
+                // Create a new scene for the full article
+                Platform.runLater(() -> {
+                    Stage stage = new Stage();
+                    stage.setScene(new Scene(root));
+                    stage.setTitle("Full Article");
+                    stage.show();
+                });
 
-                // Create a Label for the category
-                Label categoryLabel = new Label("Category: " + category);
-                categoryLabel.setStyle("-fx-font-size: 12; -fx-text-fill: gray;");
-
-                // Add the image and labels to the HBox
-                articleBox.getChildren().addAll(imageView, new VBox(titleLabel, categoryLabel));
-
-                // Add the HBox to the VBox
-                articlesVBox.getChildren().add(articleBox);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+        });
+    }
 
-        } catch (Exception e) {
+    public void saveCategoriesAction() {
+        List<String> categories = List.of("Technology", "Health", "Sports", "Entertainment");
+
+        try {
+            // Get the Statement object from DatabaseManager
+            Statement statement = DatabaseManager.createConnection();
+            // Get the Connection object from the Statement
+            Connection conn = statement.getConnection();
+
+            boolean success = CategoryManager.saveCategoriesWithIDs(conn, categories);
+            if (success) {
+                System.out.println("Categories saved successfully!");
+            } else {
+                System.out.println("Failed to save categories.");
+            }
+        } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-@FXML
+
+
+
+    @FXML
     public void setPreferencesOnAction(ActionEvent actionEvent) {
 
         try {
@@ -131,7 +197,6 @@ public void initialize() {
 
             // Retrieve the controller for Preference.fxml
             PreferencesController preferencesController = loader.getController();
-            preferencesController.setSelectedCategories();
             preferencesController.loadCategoriesIntoCheckboxes();
             preferencesController.setUser(loggedInUser);
 
