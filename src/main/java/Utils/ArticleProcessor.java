@@ -77,7 +77,7 @@ public class ArticleProcessor {
     }
 
     public void processAndStoreArticles() {
-        JSONArray articles = utils.APIClient.fetchArticles();
+        JSONArray articles = Utils.APIClient.fetchArticles();
 
         if (articles != null) {
             for (int i = 0; i < articles.length(); i++) {
@@ -114,12 +114,6 @@ public class ArticleProcessor {
         }
     }
 
-//    private void saveArticleToDatabase(String title, String description, String category) {
-//        String query = "INSERT INTO articles (title, category_id) VALUES ('"
-//                + article.getTitle() + "', '"
-//                + article.getCategoryId() + ")";
-//        DatabaseManager.iud(query);
-//    }
 
     public static void main(String[] args) {
         ArticleProcessor processor = new ArticleProcessor();

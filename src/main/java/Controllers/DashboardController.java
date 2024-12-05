@@ -1,6 +1,7 @@
 package Controllers;
 
 
+import Utils.APIClient;
 import Utils.ArticleProcessor;
 import database.DatabaseManager;
 import javafx.application.Platform;
@@ -64,9 +65,9 @@ public class  DashboardController {
 
 public void initialize() {
         saveCategoriesAction();
-        ArticleProcessor articleProcessor = new ArticleProcessor();
-        articleProcessor.processAndStoreArticles();
-        //loadArticles();
+//        ArticleProcessor articleProcessor = new ArticleProcessor();
+//        articleProcessor.processAndStoreArticles();
+        loadArticles();
 
 }
 
@@ -76,6 +77,56 @@ public void initialize() {
     private VBox articlesVBox;
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2); // For background threads
+
+
+    public void loadArticles() {
+        articlesVBox.getChildren().clear(); // Clear existing articles in the VBox
+
+        // Execute the task asynchronously
+        executorService.submit(() -> {
+            try {
+                // Fetch articles from the API
+                JSONArray articlesArray = APIClient.fetchArticles();
+
+                List<Article> articles = new ArrayList<>();
+                for (int i = 0; i < articlesArray.length(); i++) {
+                    JSONObject jsonObject = articlesArray.getJSONObject(i);
+                    int articleId = i + 1; // Generate a dummy ID (or use one from the API)
+                    String title = jsonObject.optString("name", "No Title");
+                    String description = jsonObject.optString("description", "No Description");
+
+                    // Add the article to the list
+                    articles.add(new Article(articleId, title));
+                }
+
+                // Update the UI on the JavaFX Application Thread
+                Platform.runLater(() -> {
+                    for (Article article : articles) {
+                        HBox articlePreview = new HBox();
+                        articlePreview.setStyle("-fx-padding: 10; -fx-border-color: lightgray; -fx-border-width: 1; -fx-background-color: #f9f9f9;");
+                        articlePreview.setSpacing(10);
+
+                        // Title Label
+                        Label titleLabel = new Label(article.getTitle());
+                        titleLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: blue;");
+
+                        // Add click event to show the full article
+                        //titleLabel.setOnMouseClicked(event -> showFullArticle(article));
+
+                        // Add the title label to the HBox
+                        articlePreview.getChildren().addAll(titleLabel);
+
+                        // Add the HBox to the VBox
+                        articlesVBox.getChildren().add(articlePreview);
+                    }
+                    System.out.println("Articles loaded");
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
 
     // Load articles asynchronously
 //    public void loadArticles() {
