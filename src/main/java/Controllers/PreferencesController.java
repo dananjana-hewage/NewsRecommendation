@@ -123,6 +123,7 @@ public class PreferencesController {
             }
 
             System.out.println("Preferences successfully updated!");
+
             loadDashboardController();
         } catch (Exception e) {
             System.out.println("Error saving preferences: " + e.getMessage());

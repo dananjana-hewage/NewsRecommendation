@@ -103,6 +103,7 @@ ResultSet resultSet= DatabaseManager.search("SELECT * FROM users WHERE `username
         if (user != null) {
             if (user.getPassword().equals(password)) {
                 System.out.println("Sign-In successful for user: " + user.getUsername());
+
                 showAlert("Success", "Welcome back, " + user.getUsername() + "!");
                 System.out.println(user.getId());
 
